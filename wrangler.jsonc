@@ -1,0 +1,12 @@
+// Isolated single-owner sync sandbox. Never deploy without a strong SETUP_CODE secret,
+// edge abuse controls, approved QR onboarding, security review and browser tests.
+{
+  "name": "shared-list-sandbox",
+  "main": "server/worker.js",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "web", "run_worker_first": ["/api/*"] },
+  "durable_objects": { "bindings": [{ "name": "LISTS", "class_name": "List" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["List"] }],
+  "workers_dev": false,
+  "preview_urls": false
+}

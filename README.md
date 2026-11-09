@@ -1,6 +1,6 @@
 # Shared List (working name)
 
-A new, independent **local-first shopping-list PWA**. The current release is a **working phase-1 prototype**, not a collaborative or production-secure app.
+A new, independent **local-first shopping-list PWA**. Phase 1 is a **local-only PWA**. An isolated phase-2 **single-owner server/protocol sandbox** exists, but is not wired to the app, deployed, collaborative, or production-secure.
 
 ## Implemented
 
@@ -14,7 +14,7 @@ A new, independent **local-first shopping-list PWA**. The current release is a *
 
 ## Not implemented
 
-**No server, real-time sync, invitations, QR codes, member removal or cross-device encryption yet.** The app is explicitly labelled as local-only in the UI. The local encryption key is stored alongside encrypted documents in the same browser origin and is extractable to allow a future enrollment protocol. It **does not protect against compromised JavaScript, device access or a malicious app host**. Never use this version for sensitive or irreplaceable data.
+**The user-facing PWA has no server connection, realtime collaboration, invitations, QR codes or cross-device sharing.** An unconnected owner-only Cloudflare/SQLite sync sandbox and tested cryptographic envelope library are included. The app is explicitly labelled as local-only in the UI. The local encryption key is stored alongside encrypted documents in the same browser origin and is extractable to allow a future enrollment protocol. It **does not protect against compromised JavaScript, device access or a malicious app host**. Never use this version for sensitive or irreplaceable data.
 
 ## Run
 
@@ -27,7 +27,7 @@ python3 -m http.server 8080 --directory web
 
 `localhost` is a secure browser context, so Web Crypto and service workers work without HTTPS. On a phone over the local network, use **HTTPS** (plain `http://LAN-IP` won't reliably support cryptography/PWA features).
 
-Test the pure model with Node.js 20+:
+Test the model and isolated protocol/store with Node.js 22+:
 
 ```bash
 npm test
@@ -51,10 +51,10 @@ Every local edit gets a unique operation ID, a device ID and a logical clock; un
 
 ## Next milestones
 
-1. Define/test canonical signing encoding, per-device ECDSA/ECDH identities, epoch keys and encrypted network operation envelopes.
-2. Add a single Cloudflare Worker + SQLite-backed Durable Object store with idempotent encrypted operations, authenticated WebSocket hints and HTTPS catch-up/retry.
+1. **Isolated code implemented:** signed ECDSA/ECDH device identities, owner-signed member chain, AES-GCM operation envelopes bound to membership checkpoints, recipient-signed ECDH key packages, authenticated requests, SQLite-backed owner-only Worker and WebSocket hints. Unit tests run without deployment. [Protocol and limitations](docs/sync-protocol.md).
+2. **Next:** persist device keys/pinned history/cursor in IndexedDB; connect owner-only signed encrypted catch-up and outbox acknowledgements; browser-test with local Wrangler.
 3. Build one-use, five-minute physical QR enrollment with comparison code and explicit approval; do not put persistent list secrets in a QR.
-4. Implement owner-root membership checks, revocation, epoch rotation, offline rebase, encrypted recovery and abuse controls.
+4. Implement revocation, epoch rotation, offline rebase, encrypted recovery and global abuse controls.
 5. Independent security review and cross-device Safari/Firefox/Chrome testing before public use.
 
 A phase-1 manual QA checklist is in [`docs/checklist.md`](docs/checklist.md). Browser E2E has not yet been executed in this environment. The detailed architectural blueprint remains separate. These later phases are neither implemented nor claimed secure.
