@@ -58,3 +58,8 @@ test('authenticated recipient-only ECDH key wrapping; signed by sender', async (
   await assert.rejects(unwrapListSecret({ pkg, recipient: bob, senderSigningPublic: alice.signing.publicKey, expectedListId: listId, expectedEpoch: 1, expectedMembershipHash: hash }));
   await assert.rejects(unwrapListSecret({ pkg: { ...pkg, from: randomUUID() }, recipient: bob, senderSigningPublic: alice.signing.publicKey, expectedListId: listId, expectedEpoch: 2, expectedMembershipHash: hash }));
 });
+
+test('unknown unencrypted network envelope fields are rejected', async () => {
+  const env = await encryptOperation({ listSecret: secret, listId, epoch: 0, membershipHash, operation: makeOp(), device: alice });
+  await assert.rejects(verifyEnvelope({ ...env, cleartext: 'secret leak' }, alice.signing.publicKey));
+});
