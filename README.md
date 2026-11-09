@@ -1,6 +1,6 @@
 # Shared List (working name)
 
-A new, independent **local-first shopping-list PWA**. Phase 1 is a **local-only PWA**. Isolated phase-2/3 **single-owner server, cryptographic protocol and browser sync-engine sandboxes** exist, but is not wired to the app, deployed, collaborative, or production-secure.
+A new, independent **local-first shopping-list PWA**. Phase 1 is a **local-only PWA**. Isolated phase-2/3/4 **single-owner server, cryptographic protocol, browser sync and QR-message sandboxes** exist, but is not wired to the app, deployed, collaborative, or production-secure.
 
 ## Implemented
 
@@ -54,8 +54,8 @@ Every local edit gets a unique operation ID, a device ID and a logical clock; un
 1. **Isolated code implemented:** signed ECDSA/ECDH device identities, owner-signed member chain, AES-GCM operation envelopes bound to membership checkpoints, recipient-signed ECDH key packages, authenticated requests, SQLite-backed owner-only Worker and WebSocket hints. Unit tests run without deployment. [Protocol and limitations](docs/sync-protocol.md).
 2. **Isolated code implemented:** IndexedDB trust/identity persistence and an injected-storage sync client which survives lost responses, verifies signed/encrypted catch-up and acknowledges only exact persisted ciphertext. [Client constraints](docs/client-sync.md).
 3. **Next:** connect this to the existing local IndexedDB snapshot/outbox using atomic transactions and owner bootstrap, then browser-test with local Wrangler.
-4. Build one-use, five-minute physical QR enrollment with comparison code and explicit approval; do not put persistent list secrets in a QR.
-5. Implement revocation, epoch rotation, offline rebase, encrypted recovery and global abuse controls.
+4. **Isolated code implemented:** ephemeral QR invitation, recipient proof and owner-confirmed signed key-delivery messages. Still missing an enforced one-use server registry, claim lifecycle and UI. [QR security limits](docs/qr-enrollment.md).
+5. **Next:** integrate atomic one-use server claim/approval registry and actual in-person QR UI; then revocation, epoch rotation, offline rebase, encrypted recovery and global abuse controls.
 6. Independent security review and cross-device Safari/Firefox/Chrome testing before public use.
 
 A phase-1 manual QA checklist is in [`docs/checklist.md`](docs/checklist.md). Browser E2E has not yet been executed in this environment. The detailed architectural blueprint remains separate. These later phases are neither implemented nor claimed secure.
