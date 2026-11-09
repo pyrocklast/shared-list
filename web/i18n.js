@@ -1,0 +1,42 @@
+const translations = {
+  en: {
+    app: 'Shared List', yourLists: 'Your lists', createList: 'New list', newList: 'Create a list',
+    listName: 'List name', sectionName: 'Section name', itemName: 'Item', toBuy: 'To buy',
+    create: 'Create', save: 'Save', cancel: 'Cancel', delete: 'Delete', rename: 'Rename list',
+    listMenu: 'List options', editSection: 'Edit section', newSection: 'Add a section',
+    addItem: 'Add an item', editItem: 'Edit item', moveTo: 'Section',
+    completed: 'Completed', showCompleted: 'Show completed', hideCompleted: 'Hide completed',
+    empty: 'Your lists will appear here.', noItems: 'No items yet',
+    local: 'Saved on this device', localOnly: 'Local prototype — sharing is not available yet',
+    deleteList: 'Delete this list', confirmDelete: 'Delete permanently?',
+    deleteListDetail: 'This permanently deletes the list and its local key from this browser.',
+    deleteItem: 'Delete item', deleteSection: 'Delete section',
+    moveUp: 'Move up', moveDown: 'Move down',
+    sectionNotEmpty: 'Move or delete every item in this section before deleting it, including completed items.',
+    invalidName: 'Enter a name.', storageError: 'Could not save. Your change was not recorded.',
+    edit: 'Edit', goBack: 'All lists', check: 'Check', uncheck: 'Uncheck',
+    firstList: 'Create a list to get started',
+    details: 'Your changes are stored locally and work without a connection.',
+  },
+  fr: {
+    app: 'Shared List', yourLists: 'Vos listes', createList: 'Nouvelle liste', newList: 'Créer une liste',
+    listName: 'Nom de la liste', sectionName: 'Nom de la section', itemName: 'Article', toBuy: 'À acheter',
+    create: 'Créer', save: 'Enregistrer', cancel: 'Annuler', delete: 'Supprimer', rename: 'Renommer la liste',
+    listMenu: 'Options de la liste', editSection: 'Modifier la section', newSection: 'Ajouter une section',
+    addItem: 'Ajouter un article', editItem: 'Modifier l’article', moveTo: 'Section',
+    completed: 'Terminés', showCompleted: 'Afficher les articles terminés', hideCompleted: 'Masquer les articles terminés',
+    empty: 'Vos listes apparaîtront ici.', noItems: 'Aucun article',
+    local: 'Enregistré sur cet appareil', localOnly: 'Prototype local — partage indisponible pour le moment',
+    deleteList: 'Supprimer cette liste', confirmDelete: 'Supprimer définitivement ?',
+    deleteListDetail: 'Cette action efface définitivement cette liste et sa clé locale de ce navigateur.',
+    deleteItem: 'Supprimer l’article', deleteSection: 'Supprimer la section',
+    moveUp: 'Monter', moveDown: 'Descendre',
+    sectionNotEmpty: 'Déplacez ou supprimez tous les articles de cette section avant de la supprimer, y compris les articles terminés.',
+    invalidName: 'Saisissez un nom.', storageError: 'Enregistrement impossible. La modification n’a pas été conservée.',
+    edit: 'Modifier', goBack: 'Toutes les listes', check: 'Cocher', uncheck: 'Décocher',
+    firstList: 'Créez une liste pour commencer',
+    details: 'Vos modifications sont enregistrées localement et fonctionnent sans connexion.',
+  }
+};
+export const language = navigator.language?.toLowerCase().startsWith('fr') ? 'fr' : 'en';
+export function t(key) { return translations[language][key] || translations.en[key] || key; }

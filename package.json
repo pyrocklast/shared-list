@@ -1,0 +1,8 @@
+{
+  "name": "shared-list-starter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test test/*.test.mjs", "dev": "python3 -m http.server 8080 --directory web" },
+  "engines": { "node": ">=20" }
+}
