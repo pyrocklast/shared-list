@@ -35,10 +35,11 @@ export async function importVerifyKey(jwk) { return subtle.importKey('jwk', publ
 export async function importAgreementKey(jwk) { return subtle.importKey('jwk', publicJwk(jwk), { name: 'ECDH', namedCurve: 'P-256' }, true, []); }
 export function randomId() { return crypto.randomUUID(); }
 export function randomToken(length = 32) { if (length < 16 || length > 64) throw Error('Invalid token size'); return b64u(crypto.getRandomValues(new Uint8Array(length))); }
-export async function generateDeviceKeys() {
+export async function generateDeviceKeys(existingId = randomId()) {
+  requireId(existingId);
   const signing = await subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']);
   const agreement = await subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
-  return { deviceId: randomId(), signing: { privateKey: signing.privateKey, publicKey: await exportPublic(signing.publicKey) }, agreement: { privateKey: agreement.privateKey, publicKey: await exportPublic(agreement.publicKey) } };
+  return { deviceId: existingId, signing: { privateKey: signing.privateKey, publicKey: await exportPublic(signing.publicKey) }, agreement: { privateKey: agreement.privateKey, publicKey: await exportPublic(agreement.publicKey) } };
 }
 export async function digest(value) { return b64u(await subtle.digest('SHA-256', typeof value === 'string' ? utf8(value) : value)); }
 export async function sign(privateKey, domain, fields) {
