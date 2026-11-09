@@ -1,4 +1,4 @@
-// Isolated single-owner sync sandbox. Never deploy without a strong SETUP_CODE secret,
+// Isolated E2EE sync + QR admission sandbox. Never deploy without a strong SETUP_CODE secret,
 // edge abuse controls, approved QR onboarding, security review and browser tests.
 {
   "name": "shared-list-sandbox",

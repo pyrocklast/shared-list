@@ -8,16 +8,17 @@ Status: **prototype, NOT live collaboration, NOT production ready**. This does n
 - The list's **32-byte secret never goes to the server**. Each epoch derives a distinct AES-GCM operation key via HKDF-SHA-256, bound to list ID and epoch. Fresh random 96-bit IVs and authenticated associated data bind the encrypted JSON to the list, membership checkpoint, operation ID and author.
 - Each operation envelope is signed by the device's ECDSA key. Server verifies the member's signature and the **current** owner-signed membership checkpoint before appending opaque bytes. Clients must independently verify the membership history against a root pinned physically; trust obtained from server data alone is insufficient.
 - ECDH key delivery produces a sender-signed one-recipient package, with a fresh ephemeral sender ECDH key, HKDF, random salt, fresh AES-GCM IV and explicit list, epoch, sender, recipient and membership checkpoint binding. The recipient must first independently trust the sender signing key.
-- The owner signs every membership join/removal event in a linked hash chain. Removal increments the epoch. Clients reject observed rollback/forks against a checkpoint they previously persisted. Current server implementation stores genesis only; no remote joins or removals are exposed.
+- The owner signs every membership join/removal event in a linked hash chain. Removal increments the epoch. Clients reject observed rollback/forks against a checkpoint they previously persisted. The draft server now supports **owner-approved QR joins**, but revocation is not exposed. All joined devices must pin the signed owner history independently before syncing.
 
-## Owner-only API sandbox
+## Draft synchronization and QR API sandbox
 
 All API endpoints are same-origin, HTTPS only in any remote environment. A strong, server-secret `SETUP_CODE` (minimum 24 characters, high-entropy random) is required for list creation. Do not put it into any static asset. The Worker routes to a single SQLite-backed Durable Object per list.
 
 - `POST /api/lists`: `X-Setup-Code`, `{ "genesis": ownerSignedEvent }`. Creates a new private log, never stores the list secret.
-- `GET /api/lists/:id/membership`: requires signed request; returns `{ "events": [genesis] }`.
+- `GET /api/lists/:id/membership`: requires signed active member request; returns complete owner-signed membership history.
 - `POST /api/lists/:id/changes`: requires signed request and **one** signed encrypted envelope (max 16 KiB ciphertext), enforces current membership head/epoch, returns `{ "seq", "duplicate" }`.
 - `GET /api/lists/:id/changes?after=<n>`: signed request; returns at most 100 ordered opaque entries and a latest sequence, to support catch-up.
+- `POST /api/lists/:id/invites`: signed owner request with a five-minute token hash/expiry. `GET /invites`: owner reads pending claims. `POST /invites/:inviteId/claim`: token + recipient-signed claim, atomically locks to the first claimant. `POST /invites/:inviteId/approve`: owner-signed join and recipient-bound signed key delivery; transactional head advance. `POST /invites/:inviteId/result`: signed recipient proof with token; returns verified history and wrapped key after approval. `POST /invites/:inviteId/cancel`: signed owner cancellation. All paths are under the list API prefix.
 - `POST /api/lists/:id/ticket`: signed empty request; issues a 60-second, one-use random WebSocket ticket.
 - `GET /api/lists/:id/live?ticket=...`: WebSocket upgrade using that ticket (not an epoch secret). Sends only `{ "seq" }` hints; clients MUST fetch and verify changes over HTTPS and recover gaps after reconnect.
 
