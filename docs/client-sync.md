@@ -10,7 +10,7 @@
 - Injected-storage sync client with atomic revision-checked updates of `{document, cursor, checkpoint, pending[]}`. An outbox entry is signed/encrypted once, stored *before* upload, then reused unchanged across network retries. Signed HTTP request nonce is always fresh.
 - Pull verifies the membership history before and after each page, enforces contiguous server sequence, author signature, encrypted operation's epoch and head, plaintext operation validation via `model.apply`, and atomically persists document/cursor/checkpoint/outbox acknowledgement. It rejects missing log entries and local revision races.
 - The client **does not drop a pending edit on HTTP 200**; it removes the local outbox record only after the exact signed ciphertext is observed on a verified catch-up page. A lost response after server append can therefore be recovered safely.
-- The engine handles a single approved member epoch; when membership changes, it **fails closed** rather than silently reusing old keys. That is deliberate while key rotation and offline rebase are incomplete.
+- The engine now supports historical read-only verification across signed joins within an epoch, but cannot prove a hostile server's acceptance-time ordering for old operations. It handles a single current member key epoch; when membership changes, it **fails closed** rather than silently reusing old keys. That is deliberate while key rotation and offline rebase are incomplete.
 
 ## Required integration before using this from the app
 
@@ -23,7 +23,7 @@
 
 ## Present limitations
 
-- Historical operations from older membership checkpoints are not accepted by the current client or server once membership changes. Fully multi-member catch-up will require append-time signed authorization evidence and explicit handling of previous epoch/history.
+- Historical operations from earlier signed join checkpoints can be read and authenticated by members, while writes require the current head. On an unchanged key epoch the engine can re-encrypt pending edits after a verified join; **revocation/old-epoch writes still fail closed**. A hostile server could backdate old-epoch operations without append-time signed authorization evidence; do not enable revocation until this is solved.
 - Checkpoint pinning prevents *observed* rollback/forks only; a malicious server can withhold unseen events, sequence numbers, and offline snapshots. A robust cross-device consistency protocol remains a future requirement.
 - A compromised same-origin app host can use non-extractable keys from the browser. No browser JavaScript E2EE can promise protection from malicious code served at the origin.
 - IndexedDB storage may be evicted. The prototype includes neither encrypted external backups nor a recovery path for a lost device.

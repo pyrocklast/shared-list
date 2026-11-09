@@ -4,7 +4,7 @@
 // Decrypted local operations remain available for explicit rebase after epoch rotation.
 import { signRequest } from './auth.js';
 import { encryptOperation, decryptOperation } from './crypto.js';
-import { verifyMembership, verifyAuthorizedEnvelope } from './membership.js';
+import { verifyMembership, verifyHistoricalEnvelope } from './membership.js';
 import { apply } from '../model.js';
 const MAX_PAGE = 100;
 const MAX_RETRY = 8;
@@ -58,7 +58,8 @@ export function createSyncClient({ listId, device, secret, ownerId, ownerSigning
   async function history(checkpoint) {
     const response = await transport.membership();
     const events = response?.events;
-    return verifyMembership(events, { listId, ownerId, ownerSigningPublic, checkpoint });
+    const state = await verifyMembership(events, { listId, ownerId, ownerSigningPublic, checkpoint });
+    return { ...state, events };
   }
   async function pull() {
     let count = 0;
@@ -79,8 +80,8 @@ export function createSyncClient({ listId, device, secret, ownerId, ownerSigning
           if (!Number.isSafeInteger(entry?.seq) || entry.seq !== seq + 1) throw new SyncError('missing-or-reordered-operation');
           const env = entry.envelope;
           if (env?.listId !== listId) throw new SyncError('wrong-list-operation');
-          await verifyAuthorizedEnvelope(env, trust);
-          const op = await decryptOperation({ envelope: env, listSecret: secret, memberPublicKey: trust.members.get(env.author).signing });
+          const member = await verifyHistoricalEnvelope(env, trust.events, { listId, ownerId, ownerSigningPublic, checkpoint: before.checkpoint });
+          const op = await decryptOperation({ envelope: env, listSecret: secret, memberPublicKey: member.signing });
           doc = apply(doc, op);
           for (const pending of before.pending) {
             if (pending.op.id === op.id) {
@@ -117,10 +118,12 @@ export function createSyncClient({ listId, device, secret, ownerId, ownerSigning
         const trust = await history(before.checkpoint);
         if (!trust.members.has(device.deviceId)) throw new SyncError('device-no-longer-member');
         const p = nextPending;
-        if (p.envelope) {
-          if (p.envelope.epoch !== trust.epoch || p.envelope.membershipHash !== trust.head.hash) throw new SyncError('stale-pending-operation');
-          entry = p; break;
-        }
+        if (p.envelope && p.envelope.epoch !== trust.epoch) throw new SyncError('stale-pending-operation');
+        if (p.envelope && p.envelope.membershipHash === trust.head.hash) { entry = p; break; }
+        // Same-epoch membership additions do not change the encryption key.
+        // Pull already checked for an earlier accepted copy; preserve the plaintext
+        // operation and re-encrypt/sign it for the new verified head via CAS.
+        // A changed key epoch (revocation) must NEVER take this automatic path.
         const env = await encryptOperation({ listSecret: secret, listId, epoch: trust.epoch, membershipHash: trust.head.hash, operation: p.op, device });
         const next = { ...before, checkpoint: trust.head, pending: before.pending.map(x => x.op.id === p.op.id ? { ...x, envelope: env } : x) };
         if (!await storage.commit(before.rev, next)) continue;

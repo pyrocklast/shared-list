@@ -122,12 +122,17 @@ export async function wrapListSecret({ secret, listId, epoch, sender, recipientI
   pkg.signature = await sign(sender.signing.privateKey, 'wrapped-key', packageFields(pkg));
   return pkg;
 }
-export async function unwrapListSecret({ pkg, recipient, senderSigningPublic, expectedListId, expectedEpoch, expectedMembershipHash }) {
-  if (pkg?.v !== 1 || pkg.listId !== expectedListId || pkg.epoch !== expectedEpoch || pkg.to !== recipient.deviceId || pkg.membershipHash !== expectedMembershipHash) throw Error('Wrong key delivery context');
+export async function verifyWrappedPackage({ pkg, senderSigningPublic, expectedListId, expectedEpoch, expectedMembershipHash, expectedFrom, expectedTo }) {
+  if (pkg?.v !== 1 || pkg.listId !== expectedListId || pkg.epoch !== expectedEpoch ||
+      pkg.membershipHash !== expectedMembershipHash || pkg.from !== expectedFrom || pkg.to !== expectedTo) throw Error('Wrong wrapped key context');
   requireId(pkg.listId); requireEpoch(pkg.epoch); requireId(pkg.from); requireId(pkg.to); requireHash(pkg.membershipHash);
   fromB64u(pkg.salt, 16, 16); fromB64u(pkg.iv, 12, 12); fromB64u(pkg.data, 48, 48);
-  // Verify sender's membership/authenticity BEFORE decrypting; public key must be independently trusted.
-  if (!await verify(senderSigningPublic, pkg.signature, 'wrapped-key', packageFields(pkg))) throw Error('Unauthenticated key delivery');
+  await importAgreementKey(pkg.ephemeral);
+  if (!await verify(senderSigningPublic, pkg.signature, 'wrapped-key', packageFields(pkg))) throw Error('Forged wrapped key');
+  return true;
+}
+export async function unwrapListSecret({ pkg, recipient, senderSigningPublic, expectedListId, expectedEpoch, expectedMembershipHash }) {
+  await verifyWrappedPackage({ pkg, recipient: recipient.deviceId, senderSigningPublic, expectedListId, expectedEpoch, expectedMembershipHash, expectedFrom: pkg.from, expectedTo: recipient.deviceId });
   const ephemeral = await importAgreementKey(pkg.ephemeral);
   const shared = await subtle.deriveBits({ name: 'ECDH', public: ephemeral }, recipient.agreement.privateKey, 256);
   const fields = [pkg.listId, pkg.epoch, pkg.from, pkg.to, pkg.membershipHash];

@@ -103,3 +103,29 @@ test('revision check retry handles simultaneous local mutation', async () => {
   assert.equal(await client(storage, t).pull(), 1);
   assert.equal((await storage.read()).cursor, 1);
 });
+
+test('same-epoch membership join allows verified re-encryption of offline pending edits', async () => {
+  const peer = await generateDeviceKeys();
+  const { createOwnerEvent } = await import('../web/collab/membership.js');
+  const join = await createOwnerEvent({ history: [genesis], owner: device, action: 'join', device: peer });
+  const newer = await verifyMembership([genesis, join], { listId, ownerId: device.deviceId, ownerSigningPublic: device.signing.publicKey });
+  const a = makeOp('Jam');
+  const stale = await encryptOperation({ listSecret: secret, listId, epoch: 0, membershipHash: trust.head.hash, operation: a, device });
+  const st = new MemoryStorage(apply(emptyDocument(listId), a), [{ op: a, envelope: stale }]);
+  const transport = new FakeTransport(); transport.events = [genesis, join];
+  assert.equal((await client(st, transport).synchronize()).sent, 1);
+  assert.equal(transport.log[0].membershipHash, newer.head.hash);
+  assert.equal((await st.read()).pending.length, 0);
+});
+test('a newly admitted device can verify and read pre-join owner operations', async () => {
+  const peer = await generateDeviceKeys();
+  const { createOwnerEvent } = await import('../web/collab/membership.js');
+  const join = await createOwnerEvent({ history: [genesis], owner: device, action: 'join', device: peer });
+  const a = makeOp('Butter');
+  const beforeJoinEnvelope = await encryptOperation({ listSecret: secret, listId, epoch: 0, membershipHash: trust.head.hash, operation: a, device });
+  const st = new MemoryStorage(emptyDocument(listId));
+  const transport = new FakeTransport(); transport.events = [genesis, join]; transport.log = [beforeJoinEnvelope];
+  const peerClient = createSyncClient({ listId, device: peer, secret, ownerId: device.deviceId, ownerSigningPublic: device.signing.publicKey, storage: st, transport });
+  assert.equal(await peerClient.pull(), 1);
+  assert.equal((await st.read()).document.list.name.value, 'Butter');
+});

@@ -81,3 +81,21 @@ export async function verifyAuthorizedEnvelope(envelope, state) {
   await verifyEnvelope(envelope, member.signing);
   return true;
 }
+
+// Historical read-only authorization. Caller MUST pin and verify the complete
+// owner-signed history first. Server acceptance-time ordering is not proven;
+// revocation needs separately signed append evidence before production use.
+export async function verifyHistoricalEnvelope(envelope, events, trustRoot) {
+  await verifyMembership(events, trustRoot);
+  if (envelope?.listId !== trustRoot.listId) throw Error('Wrong historical list');
+  let index = -1;
+  for (let i = 0; i < events.length; i++) {
+    if (await membershipHash(events[i]) === envelope.membershipHash) { index = i; break; }
+  }
+  if (index < 0) throw Error('Unknown signed membership checkpoint');
+  const state = await verifyMembership(events.slice(0, index + 1), { listId: trustRoot.listId, ownerId: trustRoot.ownerId, ownerSigningPublic: trustRoot.ownerSigningPublic });
+  const member = state.members.get(envelope.author);
+  if (!member || envelope.epoch !== state.epoch) throw Error('Unauthorized historical author or epoch');
+  await verifyEnvelope(envelope, member.signing);
+  return member;
+}

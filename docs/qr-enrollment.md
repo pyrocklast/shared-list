@@ -1,6 +1,6 @@
 # In-person QR admission — message protocol prototype
 
-**Status: isolated cryptographic messages and unit tests only. No UI, no server claim registry, and no working invitation path yet.** The application MUST NOT offer share/invite until every required step below is integrated and tested.
+**Status:** Cryptographic messages, a transactional SQLite invitation registry and Cloudflare Worker routes are implemented in a **draft sandbox**. There is no browser UI, integrated invitation path, Cloudflare runtime test or production rollout. The application MUST NOT offer share/invite until every required step below is integrated and tested.
 
 ## Intent
 
@@ -16,11 +16,11 @@ The recipient verifies the entire signed membership history against the owner id
 
 - A QR code **cannot cryptographically prove physical proximity**. A photograph, live remote relay, malicious server or deceived approver can defeat the intended social boundary. The eight-digit code is a visual cross-check, not a security key. UI must require an independent human comparison; merely passing a computed code to the protocol function does not prove approval took place.
 - The current 8-digit code is an HMAC truncated to about 27 bits: useful against accidental mismatches but not sufficient by itself for admission. It is not a substitute for server-enforced one-time token consumption and owner signature.
-- **No server one-use/expiry registry, approved join route, signed claim-result retrieval or replay/lost-response recovery exists yet**. The protocol currently returns messages in memory only.
+- A **prototype** SQLite one-use/expiry claim registry, approved join route, signed claim-result retrieval and same-device lost-response retry exist. These are tested against Node SQLite, **not live Cloudflare**. They are not integrated into the PWA and must not be treated as deployed security guarantees.
 - The signed membership chain lacks global freshness proof. A malicious server can withhold new members/removals or fork histories; current pinning can only detect observed divergence.
 - Revocation and key rotation are not yet connected to this path. Enrolled devices must not assume permanent access to the current secret across a key-epoch change.
 - No independent cryptographic audit, tested browser private-key persistence, barcode scanning library, or deployment. The QR flow is **not production-ready**.
 
 ## Tests
 
-`test/invite.test.mjs` covers token not containing list secrets, five-minute expiry, recipient proof of possession, modified claim rejection, matching comparison code, explicit confirmation guard, owner-signed joining, recipient-only secret delivery, substituted genesis and wrapped-key rejection. Separate server registry and cross-browser end-to-end tests remain mandatory.
+`test/invite.test.mjs` covers token not containing list secrets, five-minute expiry, recipient proof of possession, modified claim rejection, matching comparison code, explicit confirmation guard, owner-signed joining, recipient-only secret delivery, substituted genesis and wrapped-key rejection. Server registry unit tests also cover five-invite cap, expiry, claim exhaustion, same-device retry, wrong-device rejection, approved membership and recipient-only result retrieval. Cloudflare runtime, actual QR scan, multi-phone and cross-browser end-to-end tests remain mandatory.
